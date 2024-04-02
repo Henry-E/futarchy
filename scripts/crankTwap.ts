@@ -23,15 +23,20 @@ import {
   OPENBOOK_PROGRAM_ID,
 } from "./main";
 
-const PROPOSAL_NUMBER = 7;
+const PROPOSAL_NUMBER = 15;
 
 // crank the TWAPs of a proposal's markets by passing in a bunch of empty orders
 async function crankTwap() {
-  const proposals = await autocratProgram.account.proposal.all();
-  console.log(proposals);
-  const storedProposal = proposals.find(
-    (proposal) => proposal.account.number == PROPOSAL_NUMBER
-  ).account;
+  console.log("maybe it doesn't like this call");
+  //   const proposals = await autocratProgram.account.proposal.all();
+
+  //   console.log(proposals);
+  //   const storedProposal = proposals.find(
+  //     (proposal) => proposal.account.number == PROPOSAL_NUMBER
+  //   ).account;
+  const storedProposal = await autocratProgram.account.proposal.fetch(
+    new PublicKey("HXohDRKtDcXNKnWysjyjK8S5SvBe76J5o4NdcF4jj963")
+  );
 
   const passMarketTwap = storedProposal.openbookTwapPassMarket;
   const passMarket = storedProposal.openbookPassMarket;
@@ -41,12 +46,18 @@ async function crankTwap() {
   const failMarket = storedProposal.openbookFailMarket;
   const storedFailMarket = await openbook.deserializeMarketAccount(failMarket);
 
-  console.log(await openbookTwap.account.twapMarket.fetch(passMarketTwap));
-  console.log(await openbookTwap.account.twapMarket.fetch(failMarketTwap));
+  console.log(
+    "passMarketTwap",
+    await openbookTwap.account.twapMarket.fetch(passMarketTwap)
+  );
+  console.log(
+    "failMarketTwap",
+    await openbookTwap.account.twapMarket.fetch(failMarketTwap)
+  );
 
   let emptyBuyArgs: PlaceOrderArgs = {
     side: Side.Bid,
-    priceLots: new BN(10_000), // 1 USDC for 1 META
+    priceLots: new BN(10), // 0.001 USDC for 1 META
     maxBaseLots: new BN(1),
     maxQuoteLotsIncludingFees: new BN(1 * 10_000),
     clientOrderId: new BN(1),
@@ -70,17 +81,26 @@ async function crankTwap() {
     payer.publicKey
   );
 
-  let passMarketOpenOrdersAccount = await openbook.createOpenOrders(
-    payer,
-    passMarket,
-    "oo"
+  console.log("Only creating the open orders here");
+  //   let passMarketOpenOrdersAccount = await openbook.createOpenOrders(
+  //     payer,
+  //     passMarket,
+  //     "oo"
+  //   );
+  let passMarketOpenOrdersAccount = new PublicKey(
+    "AjFSxbpWhNjtmJbBQ8Ct6GBV644Hut92yUoxP1tJN67p"
   );
+  console.log("passMarketOpenOrdersAccount", passMarketOpenOrdersAccount);
 
-  let failMarketOpenOrdersAccount = await openbook.createOpenOrders(
-    payer,
-    failMarket,
-    "oo"
+  //   let failMarketOpenOrdersAccount = await openbook.createOpenOrders(
+  //     payer,
+  //     failMarket,
+  //     "oo"
+  //   );
+  let failMarketOpenOrdersAccount = new PublicKey(
+    "643GisNU7B2X6vC7VSuDEiyzd2uoxA2PAN26gghRDp9p"
   );
+  console.log("failMarketOpenOrdersAccount", failMarketOpenOrdersAccount);
 
   // openbook.findOpenOrdersForMarket()
 
@@ -104,12 +124,20 @@ async function crankTwap() {
 
   // console.log(await openbook.getOpenOrdersIndexer(indexer));
 
-  const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-    microLamports: 1,
+  //   const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+  //     microLamports: 1,
+  //   });
+
+  const cuPriceIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: 100,
+  });
+  const cuLimitIx = ComputeBudgetProgram.setComputeUnitLimit({
+    units: 150_000,
   });
 
-  for (let i = 0; i < 500; i++) {
+  for (let i = 0; i < 1000; i++) {
     try {
+      console.log("sending transaction number:", i);
       let tx = await openbookTwap.methods
         .placeOrder(emptyBuyArgs)
         .accounts({
@@ -124,7 +152,8 @@ async function crankTwap() {
           openbookProgram: OPENBOOK_PROGRAM_ID,
         })
         .preInstructions([
-          addPriorityFee,
+          cuPriceIx,
+          cuLimitIx,
           await openbookTwap.methods
             .placeOrder(emptyBuyArgs)
             .accounts({
@@ -144,7 +173,7 @@ async function crankTwap() {
 
       console.log(tx);
     } catch (err) {
-      console.log("error");
+      console.log("error", err);
     }
   }
 }

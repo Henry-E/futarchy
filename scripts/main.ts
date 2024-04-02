@@ -226,6 +226,14 @@ async function initializeVault(
       systemProgram: SystemProgram.programId,
     })
     .signers([conditionalOnFinalizeKP, conditionalOnRevertKP])
+    .preInstructions([
+      ComputeBudgetProgram.setComputeUnitLimit({
+        units: 150_000,
+      }),
+      ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 100,
+      }),
+    ])
     // .postInstructions([addMetadataToConditionalTokensIx])
     .rpc();
 
@@ -364,8 +372,10 @@ export async function initializeProposal(
 
   let baseNonce = new BN(storedDAO.proposalCount);
 
+  console.log("init base vault");
   const baseVault = await initializeVault(daoTreasury, META, baseNonce);
 
+  console.log("init quote vault");
   const quoteVault = await initializeVault(
     daoTreasury,
     USDC,
@@ -386,93 +396,114 @@ export async function initializeProposal(
     await vaultProgram.account.conditionalVault.fetch(quoteVault)
   ).conditionalOnRevertTokenMint;
 
-  let openbookPassMarketKP = Keypair.generate();
-  // let openbookPassMarket = new PublicKey("HspxPoqFhAmurNGA1FxdeaUbRcZrv8FoR2vAsyYs3EGA");
+  //   let openbookPassMarketKP = Keypair.generate();
+  let openbookPassMarket = new PublicKey(
+    "HMSuTtzH24XLxvDn5Jfi1n9z19vv161RcriY37HZTVwU"
+  );
+  //   console.log("openbookPassMarketKP: ", openbookPassMarketKP);
 
   let [openbookTwapPassMarket] = PublicKey.findProgramAddressSync(
     [
       anchor.utils.bytes.utf8.encode("twap_market"),
-      openbookPassMarketKP.publicKey.toBuffer(),
+      //   openbookPassMarketKP.publicKey.toBuffer(),
+      openbookPassMarket.toBuffer(),
     ],
     openbookTwap.programId
   );
 
-  let [passMarketInstructions, passMarketSigners] =
-    await openbook.createMarketIx(
-      payer.publicKey,
-      `${baseNonce}pMETA/pUSDC`,
-      passQuoteMint,
-      passBaseMint,
-      new BN(100),
-      new BN(1e9),
-      new BN(0),
-      new BN(0),
-      new BN(0),
-      null,
-      null,
-      openbookTwapPassMarket,
-      null,
-      openbookTwapPassMarket,
-      { confFilter: 0.1, maxStalenessSlots: 100 },
-      openbookPassMarketKP,
-      daoTreasury
-    );
+  // let [passMarketInstructions, passMarketSigners] =
+  //   await openbook.createMarketIx(
+  //     payer.publicKey,
+  //     `${baseNonce}pMETA/pUSDC`,
+  //     passQuoteMint,
+  //     passBaseMint,
+  //     new BN(100),
+  //     new BN(1e9),
+  //     new BN(0),
+  //     new BN(0),
+  //     new BN(0),
+  //     null,
+  //     null,
+  //     openbookTwapPassMarket,
+  //     null,
+  //     openbookTwapPassMarket,
+  //     { confFilter: 0.1, maxStalenessSlots: 100 },
+  //     openbookPassMarketKP,
+  //     daoTreasury
+  //   );
 
-  const cuIx = ComputeBudgetProgram.setComputeUnitPrice({
+  const cuPriceIx = ComputeBudgetProgram.setComputeUnitPrice({
     microLamports: 100,
   });
+  const cuLimitIx = ComputeBudgetProgram.setComputeUnitLimit({
+    units: 150_000,
+  });
 
-  let tx1 = new Transaction();
-  tx1.add(...passMarketInstructions);
-  tx1.add(cuIx);
+  //   let tx1 = new Transaction();
+  //   tx1.add(cuPriceIx);
+  //   tx1.add(cuLimitIx);
+  //   tx1.add(...passMarketInstructions);
 
-  let blockhash = await provider.connection.getLatestBlockhash();
-  tx1.recentBlockhash = blockhash.blockhash;
+  //   let blockhash = await provider.connection.getLatestBlockhash();
+  //   tx1.recentBlockhash = blockhash.blockhash;
 
-  tx1.sign(payer);
+  //   tx1.sign(payer);
 
-  const sig1 = await provider.sendAndConfirm(tx1, passMarketSigners);
-  console.log("First market created:\n", sig1);
+  //   const sig1 = await provider.sendAndConfirm(tx1, passMarketSigners);
+  //   console.log("First market created:\n", sig1);
 
-  let openbookFailMarketKP = Keypair.generate();
+  //   let openbookFailMarketKP = Keypair.generate();
+  let openbookFailMarket = new PublicKey(
+    "CciLvCtXAkGS5TMKNRDYBPFzfWWL7fwCQi79NRx5kTHz"
+  );
+  //   console.log(
+  //     "openbookFailMarketKP: ",
+  //     openbookFailMarketKP,
+  //     openbookFailMarketKP.publicKey
+  //   );
 
   let [openbookTwapFailMarket] = PublicKey.findProgramAddressSync(
     [
       anchor.utils.bytes.utf8.encode("twap_market"),
-      openbookFailMarketKP.publicKey.toBuffer(),
+      //   openbookFailMarketKP.publicKey.toBuffer(),
+      openbookFailMarket.toBuffer(),
     ],
     openbookTwap.programId
   );
 
-  let openbookFailMarketIx = await openbook.createMarketIx(
-    payer.publicKey,
-    `${baseNonce}fMETA/fUSDC`,
-    failQuoteMint,
-    failBaseMint,
-    new BN(100),
-    new BN(1e9),
-    new BN(0),
-    new BN(0),
-    new BN(0),
-    null,
-    null,
-    openbookTwapFailMarket,
-    null,
-    openbookTwapFailMarket,
-    { confFilter: 0.1, maxStalenessSlots: 100 },
-    openbookFailMarketKP,
-    daoTreasury
-  );
+  //   let openbookFailMarketIx = await openbook.createMarketIx(
+  //     payer.publicKey,
+  //     `${baseNonce}fMETA/fUSDC`,
+  //     failQuoteMint,
+  //     failBaseMint,
+  //     new BN(100),
+  //     new BN(1e9),
+  //     new BN(0),
+  //     new BN(0),
+  //     new BN(0),
+  //     null,
+  //     null,
+  //     openbookTwapFailMarket,
+  //     null,
+  //     openbookTwapFailMarket,
+  //     { confFilter: 0.1, maxStalenessSlots: 100 },
+  //     openbookFailMarketKP,
+  //     daoTreasury
+  //   );
 
-  let tx = new Transaction();
-  tx.add(...openbookFailMarketIx[0]);
-  tx.add(cuIx);
+  //   let tx = new Transaction();
+  //   tx.add(cuPriceIx);
+  //   tx.add(cuLimitIx);
+  //   tx.add(...openbookFailMarketIx[0]);
 
-  blockhash = await provider.connection.getLatestBlockhash();
-  tx.recentBlockhash = blockhash.blockhash;
+  //   let blockhash = await provider.connection.getLatestBlockhash();
+  //   tx.recentBlockhash = blockhash.blockhash;
 
-  const marketSig2 = await provider.sendAndConfirm(tx, openbookFailMarketIx[1]);
-  console.log("Second market created:\n", marketSig2);
+  //   const marketSig2 = await provider.sendAndConfirm(tx, openbookFailMarketIx[1]);
+  //   console.log("Second market created:\n", marketSig2);
+
+  console.log("openbookTwapFailMarket", openbookTwapFailMarket.toString());
+  console.log("openbookTwapPassMarket", openbookTwapPassMarket.toString());
 
   await autocratProgram.methods
     .initializeProposal(proposalURL, instruction)
@@ -484,14 +515,16 @@ export async function initializeProposal(
       await openbookTwap.methods
         .createTwapMarket(new BN(10_000))
         .accounts({
-          market: openbookPassMarketKP.publicKey,
+          //   market: openbookPassMarketKP.publicKey,
+          market: openbookPassMarket,
           twapMarket: openbookTwapPassMarket,
         })
         .instruction(),
       await openbookTwap.methods
         .createTwapMarket(new BN(10_000))
         .accounts({
-          market: openbookFailMarketKP.publicKey,
+          //   market: openbookFailMarketKP.publicKey,
+          market: openbookFailMarket,
           twapMarket: openbookTwapFailMarket,
         })
         .instruction(),
@@ -502,13 +535,16 @@ export async function initializeProposal(
       daoTreasury,
       quoteVault,
       baseVault,
-      openbookPassMarket: openbookPassMarketKP.publicKey,
-      openbookFailMarket: openbookFailMarketKP.publicKey,
+      //   openbookPassMarket: openbookPassMarketKP.publicKey,
+      openbookPassMarket: openbookPassMarket,
+      //   openbookFailMarket: openbookFailMarketKP.publicKey,
+      openbookFailMarket: openbookFailMarket,
       openbookTwapPassMarket,
       openbookTwapFailMarket,
       proposer: payer.publicKey,
     })
     .signers([proposalKeypair])
+    // .rpc({ skipPreflight: true });
     .rpc();
 }
 
