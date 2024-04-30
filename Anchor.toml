@@ -6,9 +6,11 @@ skip-lint = false
 
 [programs.localnet]
 amm = "CsN1N8qaMJUwoGFWt3xV4u246n2cuZy9AWLws78e3a1K"
-autocrat_migrator = "MigRDW6uxyNMDBD8fX2njCRyJC4YZk2Rx9pDUZiAESt"
+arb_bot = "A43He8159Wx79j1tzZQqqfKTRNoj5xA3ScKRrgGo8Jb"
 autocrat = "5scUH1qY87Awh5D8bQkbP2uv9BaXJXiMgrqRBw1K2vVv"
+autocrat_migrator = "MigRDW6uxyNMDBD8fX2njCRyJC4YZk2Rx9pDUZiAESt"
 conditional_vault = "F3RzPAtBQvUAAdDHD8AsPKFhDB1H38SULNKTW39dYrw8"
+# meteora-pools = "7YEV47V2FMNjHuaco5SXcQKWFErJg9CWZdCHbuZVD1zF"
 
 [registry]
 url = "https://api.apr.dev"
@@ -18,6 +20,8 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
+downloadProgram = "yarn run ts-node scripts/downloadProgramSo.ts"
+downloadAccount = "yarn run ts-node scripts/downloadAccountInfo.ts"
 airdrop = "yarn run ts-node scripts/airdrop.ts"
 autocrat_v0 = "yarn run ts-node scripts/autocratV0.ts"
 clob = "yarn run tsc scripts/clob.ts --esModuleInterop --resolveJsonModule && node scripts/clob.js && rm scripts/clob.js"
@@ -30,6 +34,7 @@ multisig = "yarn run tsx scripts/multisig.ts"
 place_order = "yarn run ts-node scripts/placeOrder.ts"
 propose = "yarn run ts-node scripts/initializeProposal.ts"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/*.ts"
+arb-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/arbBot.ts"
 
 [test]
 startup_wait = 5000
