@@ -5,7 +5,7 @@ import { Amm as AmmIDLType, IDL as AmmIDL } from "./types/amm";
 
 import BN from "bn.js";
 import { AMM_PROGRAM_ID } from "./constants";
-import { Amm, AmmWrapper } from "./types";
+import { Amm } from "./types";
 import { getATA, getAmmLpMintAddr, getAmmAddr } from "./utils/pda";
 import { MethodsBuilder } from "@coral-xyz/anchor/dist/cjs/program/namespace/methods";
 import { MintLayout, unpackMint } from "@solana/spl-token";
@@ -22,7 +22,12 @@ export type AddLiquiditySimulation = {
   baseAmount: BN;
   quoteAmount: BN;
   expectedLpTokens: BN;
-  minLpTokens: BN;
+};
+
+export type SwapSimulation = {
+  expectedOut: BN;
+  newBaseReserves: BN;
+  newQuoteReserves: BN;
 };
 
 export class AmmClient {
@@ -76,7 +81,7 @@ export class AmmClient {
     ).decimals;
 
     let [twapFirstObservationScaled, twapMaxObservationChangePerUpdateScaled] =
-      PriceMath.scalePrices(
+      PriceMath.getAmmPrices(
         baseDecimals,
         quoteDecimals,
         twapInitialObservation,
@@ -221,7 +226,7 @@ export class AmmClient {
       storedAmm.quoteMint,
       sim.quoteAmount,
       sim.baseAmount,
-      sim.minLpTokens
+      sim.expectedLpTokens
     ).rpc();
   }
 
@@ -286,8 +291,39 @@ export class AmmClient {
       });
   }
 
-  swap(
-    ammAddr: PublicKey,
+  async swap(
+    amm: PublicKey,
+    swapType: SwapType,
+    inputAmount: number,
+    outputAmountMin: number
+  ) {
+    const storedAmm = await this.getAmm(amm);
+
+    let quoteDecimals = await this.getDecimals(storedAmm.quoteMint);
+    let baseDecimals = await this.getDecimals(storedAmm.baseMint);
+
+    let inputAmountScaled: BN;
+    let outputAmountMinScaled: BN;
+    if (swapType.buy) {
+      inputAmountScaled = PriceMath.scale(inputAmount, quoteDecimals);
+      outputAmountMinScaled = PriceMath.scale(outputAmountMin, baseDecimals);
+    } else {
+      inputAmountScaled = PriceMath.scale(inputAmount, baseDecimals);
+      outputAmountMinScaled = PriceMath.scale(outputAmountMin, quoteDecimals);
+    }
+
+    return await this.swapIx(
+      amm,
+      storedAmm.baseMint,
+      storedAmm.quoteMint,
+      swapType,
+      inputAmountScaled,
+      outputAmountMinScaled
+    ).rpc();
+  }
+
+  swapIx(
+    amm: PublicKey,
     baseMint: PublicKey,
     quoteMint: PublicKey,
     swapType: SwapType,
@@ -302,13 +338,13 @@ export class AmmClient {
       })
       .accounts({
         user: this.provider.publicKey,
-        amm: ammAddr,
+        amm: amm,
         baseMint,
         quoteMint,
         userAtaBase: getATA(baseMint, this.provider.publicKey)[0],
         userAtaQuote: getATA(quoteMint, this.provider.publicKey)[0],
-        vaultAtaBase: getATA(baseMint, ammAddr)[0],
-        vaultAtaQuote: getATA(quoteMint, ammAddr)[0],
+        vaultAtaBase: getATA(baseMint, amm)[0],
+        vaultAtaQuote: getATA(quoteMint, amm)[0],
       });
   }
 
@@ -333,10 +369,6 @@ export class AmmClient {
 
   async getAmm(ammAddr: PublicKey): Promise<Amm> {
     return await this.program.account.amm.fetch(ammAddr);
-  }
-
-  async getAllAmms(): Promise<AmmWrapper[]> {
-    return await this.program.account.amm.all();
   }
 
   getTwap(amm: Amm): BN {
@@ -372,99 +404,58 @@ export class AmmClient {
     expectedLpTokens = quoteAmount
       ?.mul(new BN(lpMintSupply))
       .div(quoteReserves) as BN;
-    console.log(baseAmount?.toString());
 
     return {
       quoteAmount: quoteAmount as BN,
       baseAmount: baseAmount as BN,
       expectedLpTokens,
-      minLpTokens: expectedLpTokens.muln(99).divn(100),
     };
   }
 
-  getSwapPreview(amm: Amm, inputAmount: BN, isBuyBase: boolean): SwapPreview {
-    let quoteAmount = amm.quoteAmount;
-    let baseAmount = amm.baseAmount;
-
-    let startPrice =
-      quoteAmount.toNumber() /
-      10 ** amm.quoteMintDecimals /
-      (baseAmount.toNumber() / 10 ** amm.baseMintDecimals);
-
-    let k = quoteAmount.mul(baseAmount);
-
-    let inputMinusFee = inputAmount
-      .mul(new BN(10_000).subn(100))
-      .div(new BN(10_000));
-
-    if (isBuyBase) {
-      let tempQuoteAmount = quoteAmount.add(inputMinusFee);
-      let tempBaseAmount = k.div(tempQuoteAmount);
-
-      let finalPrice =
-        tempQuoteAmount.toNumber() /
-        10 ** amm.quoteMintDecimals /
-        (tempBaseAmount.toNumber() / 10 ** amm.baseMintDecimals);
-
-      let outputAmountBase = baseAmount.sub(tempBaseAmount);
-
-      let inputUnits = inputAmount.toNumber() / 10 ** amm.quoteMintDecimals;
-      let outputUnits =
-        outputAmountBase.toNumber() / 10 ** amm.baseMintDecimals;
-
-      let priceImpact = Math.abs(finalPrice - startPrice) / startPrice;
-
-      return {
-        isBuyBase,
-        inputAmount,
-        outputAmount: outputAmountBase,
-        inputUnits,
-        outputUnits,
-        startPrice,
-        finalPrice,
-        avgSwapPrice: inputUnits / outputUnits,
-        priceImpact,
-      };
-    } else {
-      let tempBaseAmount = baseAmount.add(inputMinusFee);
-      let tempQuoteAmount = k.div(tempBaseAmount);
-
-      let finalPrice =
-        tempQuoteAmount.toNumber() /
-        10 ** amm.quoteMintDecimals /
-        (tempBaseAmount.toNumber() / 10 ** amm.baseMintDecimals);
-
-      let outputAmountQuote = quoteAmount.sub(tempQuoteAmount);
-
-      let inputUnits = inputAmount.toNumber() / 10 ** amm.baseMintDecimals;
-      let outputUnits =
-        outputAmountQuote.toNumber() / 10 ** amm.quoteMintDecimals;
-
-      let priceImpact = Math.abs(finalPrice - startPrice) / startPrice;
-
-      return {
-        isBuyBase,
-        inputAmount,
-        outputAmount: outputAmountQuote,
-        inputUnits,
-        outputUnits,
-        startPrice,
-        finalPrice,
-        avgSwapPrice: outputUnits / inputUnits,
-        priceImpact,
-      };
+  simulateSwap(
+    inputAmount: BN,
+    swapType: SwapType,
+    baseReserves: BN,
+    quoteReserves: BN
+  ): SwapSimulation {
+    if (baseReserves.eqn(0) || quoteReserves.eqn(0)) {
+      throw new Error("reserves must be non-zero");
     }
+
+    let inputReserves, outputReserves: BN;
+    if (swapType.buy) {
+      inputReserves = quoteReserves;
+      outputReserves = baseReserves;
+    } else {
+      inputReserves = baseReserves;
+      outputReserves = quoteReserves;
+    }
+
+    let inputAmountWithFee: BN = inputAmount.muln(990);
+
+    let numerator: BN = inputAmountWithFee.mul(outputReserves);
+    let denominator: BN = inputReserves.muln(1000).add(inputAmountWithFee);
+
+    let expectedOut = numerator.div(denominator);
+
+    let newBaseReserves, newQuoteReserves: BN;
+    if (swapType.buy) {
+      newBaseReserves = baseReserves.sub(expectedOut);
+      newQuoteReserves = quoteReserves.add(inputAmount);
+    } else {
+      newBaseReserves = baseReserves.add(inputAmount);
+      newQuoteReserves = quoteReserves.sub(expectedOut);
+    }
+
+    return {
+      expectedOut,
+      newBaseReserves,
+      newQuoteReserves,
+    };
+  }
+
+  async getDecimals(mint: PublicKey): Promise<number> {
+    return unpackMint(mint, await this.provider.connection.getAccountInfo(mint))
+      .decimals;
   }
 }
-
-export type SwapPreview = {
-  isBuyBase: boolean;
-  inputAmount: BN;
-  outputAmount: BN;
-  inputUnits: number;
-  outputUnits: number;
-  startPrice: number;
-  finalPrice: number;
-  avgSwapPrice: number;
-  priceImpact: number;
-};

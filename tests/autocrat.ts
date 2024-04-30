@@ -39,9 +39,10 @@ import {
   getAmmAddr,
   getAmmLpMintAddr,
   getVaultAddr,
-} from "../app/src";
-import { PriceMath } from "../app/src/utils/priceMath";
-import { AutocratClient } from "../app/src/AutocratClient";
+} from "../futarchy-ts/src";
+import { PriceMath } from "../futarchy-ts/src/utils/priceMath";
+// import { AutocratClient } from "../futarchy-ts/src/AutocratClient";
+import {AutocratClient} from "@metadaoproject/futarchy-ts";
 import {
   ComputeBudgetInstruction,
   ComputeBudgetProgram,
@@ -49,7 +50,7 @@ import {
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { ConditionalVaultClient } from "../app/src/ConditionalVaultClient";
+import { ConditionalVaultClient } from "../futarchy-ts/src/ConditionalVaultClient";
 
 const AutocratIDL: Autocrat = require("../target/idl/autocrat.json");
 const ConditionalVaultIDL: ConditionalVault = require("../target/idl/conditional_vault.json");
@@ -170,13 +171,7 @@ describe("autocrat", async function () {
 
   describe("#initialize_dao", async function () {
     it("initializes the DAO", async function () {
-      dao = await autocratClient.initializeDao(
-        META,
-        400,
-        5,
-        5000,
-        USDC
-      );
+      dao = await autocratClient.initializeDao(META, 400, 5, 5000, USDC);
 
       let treasuryPdaBump;
       [daoTreasury, treasuryPdaBump] = PublicKey.findProgramAddressSync(
@@ -370,7 +365,7 @@ describe("autocrat", async function () {
 
       // swap $500 in the pass market, make it pass
       await ammClient
-        .swap(
+        .swapIx(
           passAmm,
           passBaseMint,
           passQuoteMint,
@@ -450,7 +445,7 @@ describe("autocrat", async function () {
 
       // swap $500 in the fail market, make it fail
       await ammClient
-        .swap(
+        .swapIx(
           failAmm,
           failBaseMint,
           failQuoteMint,
@@ -590,7 +585,7 @@ describe("autocrat", async function () {
 
       // swap $500 in the pass market, make it pass
       await ammClient
-        .swap(
+        .swapIx(
           passAmm,
           passBaseMint,
           passQuoteMint,
