@@ -20,6 +20,7 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
+getAccounts = "yarn run ts-node scripts/getMeteoraAccounts.ts"
 downloadProgram = "yarn run ts-node scripts/downloadProgramSo.ts"
 downloadAccount = "yarn run ts-node scripts/downloadAccountInfo.ts"
 airdrop = "yarn run ts-node scripts/airdrop.ts"
@@ -34,7 +35,7 @@ multisig = "yarn run tsx scripts/multisig.ts"
 place_order = "yarn run ts-node scripts/placeOrder.ts"
 propose = "yarn run ts-node scripts/initializeProposal.ts"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/*.ts"
-arb-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/arbBot.ts"
+arbTest = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/arbBot.ts"
 
 [test]
 startup_wait = 5000

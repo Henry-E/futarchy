@@ -3,6 +3,7 @@ import { BN, Program } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import { BankrunProvider } from "anchor-bankrun";
 import { loadAccountInfo } from "./utils/loadAccountInfo";
+import { readFileSync } from "fs";
 
 const { PublicKey, Keypair, SystemProgram } = anchor.web3;
 
@@ -64,6 +65,46 @@ const accounts = {
   tokenProgram: token.TOKEN_PROGRAM_ID,
 };
 
+async function getAccountsToLoad() {
+  const config = JSON.parse(
+    readFileSync(
+      "/root/projects/henrye-futarchy/scripts/account_configs/meteora_accounts.json",
+      "utf-8"
+    )
+  );
+  const accountList = [];
+
+  for (const account of config.accounts) {
+    const accountInfo = loadAccountInfo(`${account.subfolder}/${account.name}`);
+    accountList.push({
+      address: new PublicKey(account.pubkey),
+      info: accountInfo,
+    });
+  }
+
+  return accountList;
+}
+
+function loadAccounts() {
+  const config = JSON.parse(
+    readFileSync(
+      "/root/projects/henrye-futarchy/scripts/account_configs/meteora_accounts.json",
+      "utf-8"
+    )
+  );
+  const accounts = {};
+
+  for (const account of config.accounts) {
+    const varName = account.name; // Use the account's name as the variable name
+    accounts[varName] = new PublicKey(account.pubkey);
+  }
+
+  return accounts;
+}
+
+const meteoraAccounts = loadAccounts();
+console.log(meteoraAccounts);
+
 // Transaction arguments
 const args = {
   inAmount: new anchor.BN(1000000), // Input amount of token A
@@ -101,12 +142,7 @@ describe("autocrat_migrator", async function () {
           programId: METEORA_POOL_PROGRAM_ID,
         },
       ],
-      [
-        {
-          address: poolAccountInfoPubkey,
-          info: poolAccountInfo,
-        },
-      ]
+      await getAccountsToLoad()
     );
     banksClient = context.banksClient;
     provider = new BankrunProvider(context);

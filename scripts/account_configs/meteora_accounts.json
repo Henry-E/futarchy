@@ -1,0 +1,76 @@
+{
+  "accounts": [
+    {
+      "name": "lpMint",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "BtFGDgZJcGSSQL9wWUcBshfSS3goK6a9YdzFXP4Qv5EJ",
+      "type": "mint"
+    },
+    {
+      "name": "tokenAMint",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "METADDFL6wWMWEoKTFJwcThTbUmtarRJZjRpzUvkxhr",
+      "type": "mint"
+    },
+    {
+      "name": "tokenBMint",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "type": "mint"
+    },
+    {
+      "name": "aVault",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "DnqYbEK8Gr55VgYT5UkGFRTKkJaJZ7bkyRNYG8rkr71W",
+      "type": "token"
+    },
+    {
+      "name": "bVault",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "3ESUFCnRNgZ7Mn2mPPUMmXYaKU8jpnV9VtA17M7t2mHQ",
+      "type": "token"
+    },
+    {
+      "name": "aVaultLp",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "C94w5b5PyUcrtYs9v2x23Whxhh7GFJsgbwv9K7DDZ5N8",
+      "type": "token"
+    },
+    {
+      "name": "bVaultLp",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "EZWS8Rrjqmsg6tZ6vNFcsP7aqSUwXoCJJvDp6NhndSJU",
+      "type": "token"
+    },
+    {
+      "name": "adminTokenAFee",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "5WYQcjX1oYyGNgTXT4ZAbtmWgRY89Xpr3qczrgr1zQcS",
+      "type": "token"
+    },
+    {
+      "name": "adminTokenBFee",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "7rADSSePqt1i6mpSGmgwPsm9RKN3brv9dKQhwaegaGHn",
+      "type": "token"
+    },
+    {
+      "name": "meteoraPool",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "6t2CdBC26q9tj6jBwPzzFZogtjX8mtmVHUmAFmjAhMSn",
+      "type": "pool"
+    },
+    {
+      "name": "aVaultLpMint",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "FmHQz4KEyiMakjXzC9BnkRqV222X4bgbexz5wcn9BWLy",
+      "type": "mint"
+    },
+    {
+      "name": "bVaultLpMint",
+      "subfolder": "meteora_meta_usdc_pool",
+      "pubkey": "3RpEekjLE5cdcG15YcXJUpxSepemvq2FpmMcgo342BwC",
+      "type": "mint"
+    }
+  ]
+}

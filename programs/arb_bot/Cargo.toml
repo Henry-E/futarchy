@@ -19,3 +19,5 @@ default = []
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
 meteora_pools = {path = "../meteora_pools"}
+conditional_vault = { path = "../conditional_vault", features = ["cpi"] }
+amm = { path = "../amm", features = ["cpi"] }

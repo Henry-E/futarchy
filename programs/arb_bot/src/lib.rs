@@ -17,7 +17,7 @@ pub mod arb_bot {
     }
 
     pub fn execute_conditional_spot_arb(ctx: Context<ConditionalSpotArb>) -> Result<()> {
-        ctx.accounts.execute(ctx)
+        ConditionalSpotArb::execute(ctx)
     }
 
     pub fn execute_swap(
